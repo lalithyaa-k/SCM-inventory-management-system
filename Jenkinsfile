@@ -36,8 +36,7 @@ pipeline {
         stage('Health Check') {
             steps {
                 echo '🏥 Waiting for application to start...'
-                // Ping works on Windows without issues
-                bat 'ping 127.0.0.1 -n 10 > nul'
+                bat 'timeout /t 10 /nobreak >nul'
                 bat 'curl -f http://localhost:8081/api/health'
             }
         }
@@ -62,6 +61,7 @@ pipeline {
             echo '========================================='
             echo '❌ PIPELINE FAILED!'
             echo '========================================='
+            echo 'Check the logs above for errors.'
         }
     }
 }
