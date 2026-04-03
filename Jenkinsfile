@@ -4,27 +4,64 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                echo '📦 Checking out code from GitHub...'
                 checkout scm
             }
         }
         
-        stage('Docker Deploy') {
+        stage('Docker Build') {
             steps {
+                echo '🐳 Building Docker image...'
+                bat 'docker build -t inventory-system:latest .'
+            }
+        }
+        
+        stage('Stop Old Container') {
+            steps {
+                echo '🛑 Stopping existing container...'
                 bat '''
-                    cd C:\\Users\\lalithyaa\\inventory-management-system
-                    docker build -t inventory-system:latest .
                     docker stop inventory-app 2>nul || exit 0
                     docker rm inventory-app 2>nul || exit 0
-                    docker run -d --name inventory-app -p 8081:8080 inventory-system:latest
                 '''
+            }
+        }
+        
+        stage('Deploy Container') {
+            steps {
+                echo '🚀 Starting new container...'
+                bat 'docker run -d --name inventory-app -p 8081:8080 --restart unless-stopped inventory-system:latest'
             }
         }
         
         stage('Health Check') {
             steps {
-                bat 'timeout /t 10'
-                bat 'curl http://localhost:8081/api/health'
+                echo '🏥 Waiting for application to start...'
+                // Ping works on Windows without issues
+                bat 'ping 127.0.0.1 -n 10 > nul'
+                bat 'curl -f http://localhost:8081/api/health'
             }
+        }
+        
+        stage('Verify Deployment') {
+            steps {
+                echo '📊 Container status:'
+                bat 'docker ps --filter name=inventory-app'
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo '========================================='
+            echo '✅ PIPELINE COMPLETED SUCCESSFULLY!'
+            echo '========================================='
+            echo 'Application running at: http://localhost:8081'
+            echo '========================================='
+        }
+        failure {
+            echo '========================================='
+            echo '❌ PIPELINE FAILED!'
+            echo '========================================='
         }
     }
 }
