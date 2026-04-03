@@ -1,0 +1,37 @@
+# Application Configuration
+app_name: inventory-management-system
+app_version: "{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}"
+container_name: inventory-app
+image_name: inventory-system:latest
+app_port: 8081
+
+# Docker Configuration
+docker_network: inventory-net
+docker_restart_policy: always
+docker_memory_limit: 512m
+docker_cpu_limit: 0.5
+
+# Java Configuration
+java_version: 17
+java_home: /usr/lib/jvm/java-17-openjdk-amd64
+jvm_options: "-Xms256m -Xmx512m"
+
+# Application Properties
+app_env: production
+log_level: INFO
+warehouse_api_url: http://warehouse-service:8081
+
+# Health Check
+health_check_endpoint: /api/health
+health_check_retries: 30
+health_check_delay: 5
+health_check_timeout: 10
+
+# Backup Configuration
+backup_enabled: true
+backup_directory: /backups/inventory-system
+backup_retention_days: 7
+
+# Monitoring
+monitoring_enabled: true
+metrics_endpoint: /actuator/metrics

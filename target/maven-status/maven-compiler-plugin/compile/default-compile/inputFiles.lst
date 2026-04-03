@@ -1,0 +1,6 @@
+/home/lalithyaa/inventory-management-system/src/main/java/com/inventory/InventoryApplication.java
+/home/lalithyaa/inventory-management-system/src/main/java/com/inventory/service/InventoryService.java
+/home/lalithyaa/inventory-management-system/src/main/java/com/inventory/controller/InventoryController.java
+/home/lalithyaa/inventory-management-system/src/main/java/com/inventory/repository/InventoryRepository.java
+/home/lalithyaa/inventory-management-system/src/main/java/com/inventory/model/InventoryItem.java
+/home/lalithyaa/inventory-management-system/src/main/java/com/inventory/service/SyncService.java

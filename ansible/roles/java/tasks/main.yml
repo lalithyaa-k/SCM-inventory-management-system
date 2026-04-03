@@ -1,0 +1,32 @@
+---
+- name: Install OpenJDK {{ java_version }}
+  apt:
+    name: openjdk-{{ java_version }}-jdk
+    state: present
+
+- name: Set JAVA_HOME
+  lineinfile:
+    path: /etc/environment
+    line: 'JAVA_HOME={{ java_home }}'
+    create: yes
+
+- name: Configure Java alternatives
+  alternatives:
+    name: java
+    path: "{{ java_home }}/bin/java"
+
+- name: Verify Java installation
+  command: java -version
+  register: java_version_check
+  changed_when: false
+
+- name: Display Java version
+  debug:
+    msg: "Java Version: {{ java_version_check.stderr }}"
+
+#- name: Configure Java security (for production)
+#  lineinfile:
+#   path: "{{ java_home }}/lib/security/java.security"
+#    regexp: '^#crypto.policy='
+#    line: 'crypto.policy=unlimited'
+#  when: app_env == 'production'

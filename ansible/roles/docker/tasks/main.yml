@@ -1,0 +1,54 @@
+---
+- name: Install Docker dependencies
+  apt:
+    name:
+      - docker.io
+      - docker-compose
+    state: present
+
+- name: Start Docker service
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Add current user to docker group
+  user:
+    name: "lalithyaa"
+    groups: docker
+    append: yes
+
+- name: Create Docker network
+  docker_network:
+    name: "{{ docker_network }}"
+    driver: bridge
+
+- name: Configure Docker daemon
+  copy:
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "10m",
+          "max-file": "3"
+        },
+        "storage-driver": "overlay2",
+        "default-ulimits": {
+          "nofile": {
+            "Name": "nofile",
+            "Hard": 65535,
+            "Soft": 65535
+          }
+        }
+      }
+    dest: /etc/docker/daemon.json
+  notify: restart docker
+
+- name: Verify Docker installation
+  command: docker --version
+  register: docker_version
+  changed_when: false
+
+- name: Display Docker version
+  debug:
+    msg: "Docker Version: {{ docker_version.stdout }}"

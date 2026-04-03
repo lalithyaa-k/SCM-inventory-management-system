@@ -1,0 +1,49 @@
+---
+- name: Build Docker image
+  command: docker build -t "{{ image_name }}" "{{ playbook_dir }}/.."
+  register: image_build
+  become: no
+
+- name: Show build output
+  debug:
+    var: image_build.stdout_lines
+  when: image_build.stdout_lines is defined
+
+- name: Stop and remove existing container
+  shell: |
+    docker stop {{ container_name }} 2>/dev/null || true
+    docker rm {{ container_name }} 2>/dev/null || true
+  become: no
+
+- name: Run new container
+  shell: |
+    docker run -d \
+      --name {{ container_name }} \
+      --restart {{ docker_restart_policy }} \
+      -p {{ app_port }}:{{ app_port }} \
+      -e "PORT={{ app_port }}" \
+      -e "JAVA_OPTS={{ jvm_options }}" \
+      -e "SPRING_PROFILES_ACTIVE={{ app_env }}" \
+      -e "WAREHOUSE_API_URL={{ warehouse_api_url }}" \
+      -e "LOGGING_LEVEL_COM_INVENTORY={{ log_level }}" \
+      {{ image_name }}
+  register: run_result
+  become: no
+
+- name: Wait for application to start
+  wait_for:
+    port: "{{ app_port | int }}"
+    host: localhost
+    delay: 10
+    timeout: 120
+
+- name: Test application
+  uri:
+    url: "http://localhost:{{ app_port }}/api/health"
+    method: GET
+    status_code: 200
+  register: health_check
+
+- name: Display success
+  debug:
+    msg: "✅ App running at http://localhost:{{ app_port }}"

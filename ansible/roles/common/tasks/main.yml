@@ -1,0 +1,97 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  tags:
+    - common
+    - apt
+    - system
+
+- name: Install essential packages
+  apt:
+    name:
+      - curl
+      - wget
+      - git
+      - vim
+      - htop
+      - net-tools
+      - telnet
+      - jq
+      - python3-pip
+      - python3-setuptools
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - software-properties-common
+    state: present
+  tags:
+    - common
+    - packages
+    - essential
+
+- name: Install Python Docker module
+  pip:
+    name:
+      - docker
+      - docker-compose
+    state: present
+  tags:
+    - python-docker
+    - pip
+    - docker-deps
+
+- name: Create application directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /opt/{{ app_name }}
+    - /var/log/{{ app_name }}
+    - "{{ backup_directory }}"
+  tags:
+    - common
+    - directories
+    - setup
+
+- name: Configure system limits
+  pam_limits:
+    domain: "*"
+    limit_type: "{{ item.type }}"
+    limit_item: "{{ item.item }}"
+    value: "{{ item.value }}"
+  loop:
+    - { type: soft, item: nofile, value: 65535 }
+    - { type: hard, item: nofile, value: 65535 }
+    - { type: soft, item: nproc, value: 65535 }
+    - { type: hard, item: nproc, value: 65535 }
+  tags:
+    - common
+    - limits
+    - system-config
+
+- name: Set timezone to UTC
+  timezone:
+    name: UTC
+  tags:
+    - common
+    - timezone
+    - system-config
+
+- name: Configure sysctl parameters
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop:
+    - { name: net.core.somaxconn, value: 1024 }
+    - { name: vm.swappiness, value: 10 }
+    - { name: net.ipv4.tcp_tw_reuse, value: 1 }
+  tags:
+    - common
+    - sysctl
+    - system-config

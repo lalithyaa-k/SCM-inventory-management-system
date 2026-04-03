@@ -1,0 +1,80 @@
+---
+- name: COMPLETE CI/CD PIPELINE - Inventory Management System Deployment
+  hosts: production
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - vars.yml
+  
+  pre_tasks:
+    - name: Validate system requirements
+      assert:
+        that:
+          - ansible_os_family == "Debian" or ansible_os_family == "Ubuntu"
+          - ansible_architecture == "x86_64"
+        msg: "This playbook requires Ubuntu/Debian x86_64 system"
+
+    - name: Create deployment timestamp
+      set_fact:
+        deploy_timestamp: "{{ ansible_date_time.epoch }}"
+        deploy_id: "{{ lookup('password', '/dev/null length=8 chars=ascii_letters,digits') }}"
+
+    - name: Display deployment information
+      debug:
+        msg:
+          - "========================================="
+          - "DEPLOYMENT ID: {{ deploy_id }}"
+          - "TIMESTAMP: {{ deploy_timestamp }}"
+          - "APP VERSION: {{ app_version }}"
+          - "ENVIRONMENT: {{ app_env }}"
+          - "========================================="
+
+  roles:
+    - role: common
+      tags: [common, setup]
+    - role: java
+      tags: [java, setup]
+    - role: docker
+      tags: [docker, setup]
+    - role: app-deploy
+      tags: [app, deploy]
+
+  post_tasks:
+    - name: Verify deployment
+      uri:
+        url: "http://localhost:{{ app_port }}{{ health_check_endpoint }}"
+        method: GET
+        status_code: 200
+        timeout: "{{ health_check_timeout }}"
+      register: health_check
+      retries: "{{ health_check_retries }}"
+      delay: "{{ health_check_delay }}"
+      until: health_check.status == 200
+
+    - name: Display deployment summary
+      debug:
+        msg:
+          - "========================================="
+          - "✅ DEPLOYMENT SUCCESSFUL"
+          - "Application: {{ app_name }}"
+          - "Version: {{ app_version }}"
+          - "Container: {{ container_name }}"
+          - "Port: {{ app_port }}"
+          - "Health Check: {{ health_check_endpoint }}"
+          - "========================================="
+
+    - name: Send deployment notification (optional)
+      debug:
+        msg: "Deployment completed successfully at {{ ansible_date_time.iso8601 }}"
+      when: monitoring_enabled
+
+  handlers:
+    - name: restart docker
+      systemd:
+        name: docker
+        state: restarted
+      when: docker_restart_needed | default(false)
+
+    - name: cleanup old containers
+      shell: docker container prune -f
+      listen: "cleanup containers"
