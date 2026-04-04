@@ -62,8 +62,6 @@ pipeline {
             echo '========================================='
             echo '❌ PIPELINE FAILED!'
             echo '========================================='
-            echo 'Check the logs above for errors.'
-            echo '========================================='
         }
     }
 }
