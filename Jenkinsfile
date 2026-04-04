@@ -12,16 +12,16 @@ pipeline {
         stage('Docker Build') {
             steps {
                 echo '🐳 Building Docker image...'
-                bat 'docker build -t inventory-system:latest .'
+                sh 'docker build -t inventory-system:latest .'
             }
         }
         
         stage('Stop Old Container') {
             steps {
                 echo '🛑 Stopping existing container...'
-                bat '''
-                    docker stop inventory-app 2>nul || exit 0
-                    docker rm inventory-app 2>nul || exit 0
+                sh '''
+                    docker stop inventory-app 2>/dev/null || true
+                    docker rm inventory-app 2>/dev/null || true
                 '''
             }
         }
@@ -29,22 +29,22 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 echo '🚀 Starting new container...'
-                bat 'docker run -d --name inventory-app -p 8081:8080 --restart unless-stopped inventory-system:latest'
+                sh 'docker run -d --name inventory-app -p 8081:8080 --restart unless-stopped inventory-system:latest'
             }
         }
         
         stage('Health Check') {
             steps {
                 echo '🏥 Waiting for application to start...'
-                bat 'timeout /t 10 /nobreak >nul'
-                bat 'curl -f http://localhost:8081/api/health'
+                sh 'sleep 10'
+                sh 'curl -f http://localhost:8081/api/health'
             }
         }
         
         stage('Verify Deployment') {
             steps {
                 echo '📊 Container status:'
-                bat 'docker ps --filter name=inventory-app'
+                sh 'docker ps --filter name=inventory-app'
             }
         }
     }
@@ -54,7 +54,8 @@ pipeline {
             echo '========================================='
             echo '✅ PIPELINE COMPLETED SUCCESSFULLY!'
             echo '========================================='
-            echo 'Application running at: http://localhost:8081'
+            echo 'Jenkins: http://localhost:8082'
+            echo 'Application: http://localhost:8081'
             echo '========================================='
         }
         failure {
@@ -62,6 +63,7 @@ pipeline {
             echo '❌ PIPELINE FAILED!'
             echo '========================================='
             echo 'Check the logs above for errors.'
+            echo '========================================='
         }
     }
 }
